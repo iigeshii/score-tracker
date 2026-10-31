@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score Tracker</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7280;
+    --border: #e3e6eb; --good: #1f9d55; --bad: #d64545; --accent: #3b5bdb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --card: #1d2128; --text: #e8eaee; --muted: #9aa3b0;
+      --border: #2c313a; --good: #3cc47c; --bad: #ef6464; --accent: #7c93f5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  main { width: 100%; max-width: 420px; text-align: center; }
+  .score-label { color: var(--muted); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  .score { font-size: 112px; font-weight: 700; line-height: 1; margin: 8px 0 24px; font-variant-numeric: tabular-nums; }
+  .score.bump { animation: bump .25s ease; }
+  .score.shake { animation: shake .3s ease; }
+  @keyframes bump { 50% { transform: scale(1.12); } }
+  @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .stat .v { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 13px; color: var(--muted); }
+  .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  button.vote {
+    font-size: 48px; padding: 20px 0; border-radius: 16px; cursor: pointer;
+    border: 2px solid var(--border); background: var(--card); color: var(--text);
+    transition: transform .08s ease, border-color .15s ease;
+  }
+  button.vote:active { transform: scale(.96); }
+  button.vote.up:hover { border-color: var(--good); }
+  button.vote.down:hover { border-color: var(--bad); }
+  .msg { min-height: 1.5em; margin: 16px 0 8px; color: var(--muted); font-size: 15px; }
+  .reset { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="score-label">Score</div>
+  <div class="score" id="score">0</div>
+
+  <div class="stats">
+    <div class="stat"><div class="v" id="saves">0</div><div class="l">Saves left this round</div></div>
+    <div class="stat"><div class="v" id="global">0</div><div class="l">Global saves</div></div>
+  </div>
+
+  <div class="buttons">
+    <button class="vote up" id="up" aria-label="Right answer">👍</button>
+    <button class="vote down" id="down" aria-label="Wrong answer">👎</button>
+  </div>
+
+  <div class="msg" id="msg"></div>
+  <button class="reset" id="reset">Reset everything</button>
+</main>
+
+<script>
+  const KEY = 'score-tracker-v1';
+  const fresh = () => ({ score: 0, saves: 0, globalSaves: 0 });
+
+  let state;
+  try { state = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)) || {}); }
+  catch { state = fresh(); }
+
+  const $ = id => document.getElementById(id);
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+  }
+
+  function render(msg, anim) {
+    $('score').textContent = state.score;
+    $('saves').textContent = state.saves;
+    $('global').textContent = state.globalSaves;
+    $('msg').textContent = msg || '';
+    if (anim) {
+      const el = $('score');
+      el.classList.remove('bump', 'shake');
+      void el.offsetWidth;
+      el.classList.add(anim);
+    }
+    save();
+  }
+
+  function right() {
+    state.score += 1;
+    render('Correct! +1', 'bump');
+  }
+
+  function wrong() {
+    // At zero, a wrong answer does nothing: no save spent, no global increment.
+    if (state.score === 0) {
+      render('Wrong — already at zero.', 'shake');
+      return;
+    }
+    // Use a save if one is available: score holds.
+    if (state.saves > 0) {
+      state.saves -= 1;
+      render(`Saved! Score holds at ${state.score}.`, 'shake');
+      return;
+    }
+    // No saves left: reset score, bump global saves, and start the new round with that many saves.
+    state.score = 0;
+    state.globalSaves += 1;
+    state.saves = state.globalSaves;
+    render(`Reset to 0. Next round you get ${state.saves} save${state.saves === 1 ? '' : 's'}.`, 'shake');
+  }
+
+  $('up').addEventListener('click', right);
+  $('down').addEventListener('click', wrong);
+  $('reset').addEventListener('click', () => {
+    if (confirm('Reset score, saves and global saves?')) { state = fresh(); render('Everything reset.'); }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowUp') right();
+    if (e.key === 'ArrowDown') wrong();
+  });
+
+  render();
+</script>
+</body>
+</html>
