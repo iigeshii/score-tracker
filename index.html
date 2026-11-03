@@ -7,63 +7,90 @@
 <style>
   :root {
     --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7280;
-    --border: #e3e6eb; --good: #1f9d55; --bad: #d64545; --accent: #3b5bdb;
+    --border: #e3e6eb; --good: #1f9d55; --bad: #d64545; --star: #e0a100;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #14171c; --card: #1d2128; --text: #e8eaee; --muted: #9aa3b0;
-      --border: #2c313a; --good: #3cc47c; --bad: #ef6464; --accent: #7c93f5;
+      --border: #2c313a; --good: #3cc47c; --bad: #ef6464; --star: #f5c542;
     }
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
-    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: flex; align-items: center; justify-content: center; padding: 16px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
   }
-  main { width: 100%; max-width: 420px; text-align: center; }
-  .score-label { color: var(--muted); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
-  .score { font-size: 112px; font-weight: 700; line-height: 1; margin: 8px 0 24px; font-variant-numeric: tabular-nums; }
+  /* The whole tracker scales to fill the window, so it fits a short split-screen pane. */
+  main {
+    width: 100%; max-width: 680px; height: 100dvh; max-height: 440px;
+    padding: clamp(6px, 2.5vh, 16px) clamp(8px, 3vw, 16px);
+    display: grid; grid-template-rows: auto 1fr; gap: clamp(6px, 2.5vh, 14px);
+    text-align: center;
+  }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: clamp(4px, 1.5vw, 10px); }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: clamp(3px, 1.2vh, 10px) 4px; min-width: 0;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .stat .v { font-size: clamp(16px, min(5.5vw, 9vh), 30px); font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: clamp(9px, min(2.6vw, 4.5vh), 12px); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat.star .v { color: var(--star); }
+  .reset {
+    background: none; border: 1px solid var(--border); border-radius: 10px; color: var(--muted);
+    cursor: pointer; font-size: clamp(14px, 4vh, 20px); padding: 0 clamp(6px, 2vw, 12px);
+  }
+
+  .play { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: clamp(6px, 2vw, 12px); min-height: 0; }
+  button.vote {
+    border-radius: 16px; cursor: pointer; min-height: 0;
+    font-size: clamp(26px, min(10vw, 16vh), 64px); line-height: 1;
+    border: 2px solid transparent; color: var(--text);
+    transition: transform .08s ease, filter .15s ease;
+  }
+  button.vote.up { background: color-mix(in srgb, var(--good) 16%, var(--card)); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+  button.vote.down { background: color-mix(in srgb, var(--bad) 14%, var(--card)); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+  button.vote:active { transform: scale(.95); filter: brightness(.95); }
+
+  .center {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px; min-width: 0; min-height: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px 6px; overflow: hidden;
+  }
+  .score-label { color: var(--muted); font-size: clamp(9px, 3.5vh, 12px); letter-spacing: .1em; text-transform: uppercase; }
+  .score { font-size: clamp(36px, min(18vw, 34vh), 140px); font-weight: 800; line-height: .95; font-variant-numeric: tabular-nums; }
   .score.bump { animation: bump .25s ease; }
   .score.shake { animation: shake .3s ease; }
   @keyframes bump { 50% { transform: scale(1.12); } }
   @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .stat .v { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .stat .l { font-size: 13px; color: var(--muted); }
-  .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  button.vote {
-    font-size: 48px; padding: 20px 0; border-radius: 16px; cursor: pointer;
-    border: 2px solid var(--border); background: var(--card); color: var(--text);
-    transition: transform .08s ease, border-color .15s ease;
+  .msg {
+    color: var(--muted); font-size: clamp(10px, 3.6vh, 13px); max-width: 100%; min-height: 1.3em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  button.vote:active { transform: scale(.96); }
-  button.vote.up:hover { border-color: var(--good); }
-  button.vote.down:hover { border-color: var(--bad); }
-  .msg { min-height: 1.5em; margin: 16px 0 8px; color: var(--muted); font-size: 15px; }
-  .reset { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
 </style>
 </head>
 <body>
 <main>
-  <div class="score-label">Score</div>
-  <div class="score" id="score">0</div>
-
   <div class="stats">
-    <div class="stat"><div class="v" id="saves">0</div><div class="l">Saves left this round</div></div>
-    <div class="stat"><div class="v" id="global">0</div><div class="l">Global saves</div></div>
-    <div class="stat"><div class="v" id="stars">0</div><div class="l">⭐ Bonus stars</div></div>
-    <div class="stat"><div class="v" id="best">0</div><div class="l">Highest score</div></div>
+    <div class="stat" title="Saves left this round"><div class="v" id="saves">0</div><div class="l">Saves left</div></div>
+    <div class="stat" title="Global saves"><div class="v" id="global">0</div><div class="l">Global saves</div></div>
+    <div class="stat star" title="Bonus stars"><div class="v" id="stars">0</div><div class="l">⭐ Stars</div></div>
+    <div class="stat" title="Highest score"><div class="v" id="best">0</div><div class="l">Best</div></div>
+    <button class="reset" id="reset" aria-label="Reset everything" title="Reset everything">↺</button>
   </div>
 
-  <div class="buttons">
+  <div class="play">
     <button class="vote up" id="up" aria-label="Right answer">👍</button>
+    <div class="center">
+      <div class="score-label">Score</div>
+      <div class="score" id="score">0</div>
+      <div class="msg" id="msg" aria-live="polite"></div>
+    </div>
     <button class="vote down" id="down" aria-label="Wrong answer">👎</button>
   </div>
-
-  <div class="msg" id="msg"></div>
-  <button class="reset" id="reset">Reset everything</button>
 </main>
 
 <script>
@@ -106,13 +133,13 @@
   function wrong() {
     // At zero, a wrong answer does nothing: no save spent, no global increment.
     if (state.score === 0) {
-      render('Wrong — already at zero.', 'shake');
+      render('Already at 0', 'shake');
       return;
     }
     // Use a save if one is available: score holds.
     if (state.saves > 0) {
       state.saves -= 1;
-      render(`Saved! Score holds at ${state.score}.`, 'shake');
+      render(`Saved! Holds at ${state.score}`, 'shake');
       return;
     }
     // No saves left: reset score, bump global saves, and start the new round with that many saves.
@@ -122,8 +149,8 @@
     state.score = 0;
     state.globalSaves += 1;
     state.saves = state.globalSaves;
-    const savesText = `Next round you get ${state.saves} save${state.saves === 1 ? '' : 's'}.`;
-    render(earnedStar ? `⭐ Bonus star! Reset to 0. ${savesText}` : `Reset to 0. ${savesText}`, 'shake');
+    const savesText = `${state.saves} save${state.saves === 1 ? '' : 's'} next round`;
+    render(earnedStar ? `⭐ Star! ${savesText}` : `Reset · ${savesText}`, 'shake');
   }
 
   $('up').addEventListener('click', right);

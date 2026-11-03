@@ -16,4 +16,5 @@ Open `index.html` in any browser — no build step or server needed.
 
 - ↑ / ↓ arrow keys work as 👍 / 👎.
 - State is remembered across page reloads (browser `localStorage`).
-- "Reset everything" link at the bottom starts over.
+- The ↺ button (top right) resets everything.
+- The layout scales to fill the window, so it fits a short split-screen pane on a phone.
