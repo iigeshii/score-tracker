@@ -53,6 +53,8 @@
   <div class="stats">
     <div class="stat"><div class="v" id="saves">0</div><div class="l">Saves left this round</div></div>
     <div class="stat"><div class="v" id="global">0</div><div class="l">Global saves</div></div>
+    <div class="stat"><div class="v" id="stars">0</div><div class="l">⭐ Bonus stars</div></div>
+    <div class="stat"><div class="v" id="best">0</div><div class="l">Highest score</div></div>
   </div>
 
   <div class="buttons">
@@ -66,7 +68,8 @@
 
 <script>
   const KEY = 'score-tracker-v1';
-  const fresh = () => ({ score: 0, saves: 0, globalSaves: 0 });
+  const STAR_THRESHOLD = 10;
+  const fresh = () => ({ score: 0, saves: 0, globalSaves: 0, stars: 0, best: 0 });
 
   let state;
   try { state = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)) || {}); }
@@ -82,6 +85,8 @@
     $('score').textContent = state.score;
     $('saves').textContent = state.saves;
     $('global').textContent = state.globalSaves;
+    $('stars').textContent = state.stars;
+    $('best').textContent = state.best;
     $('msg').textContent = msg || '';
     if (anim) {
       const el = $('score');
@@ -94,6 +99,7 @@
 
   function right() {
     state.score += 1;
+    state.best = Math.max(state.best, state.score);
     render('Correct! +1', 'bump');
   }
 
@@ -110,16 +116,20 @@
       return;
     }
     // No saves left: reset score, bump global saves, and start the new round with that many saves.
+    // Reaching the star threshold before the reset earns one bonus star (only one, however far above it).
+    const earnedStar = state.score >= STAR_THRESHOLD;
+    if (earnedStar) state.stars += 1;
     state.score = 0;
     state.globalSaves += 1;
     state.saves = state.globalSaves;
-    render(`Reset to 0. Next round you get ${state.saves} save${state.saves === 1 ? '' : 's'}.`, 'shake');
+    const savesText = `Next round you get ${state.saves} save${state.saves === 1 ? '' : 's'}.`;
+    render(earnedStar ? `⭐ Bonus star! Reset to 0. ${savesText}` : `Reset to 0. ${savesText}`, 'shake');
   }
 
   $('up').addEventListener('click', right);
   $('down').addEventListener('click', wrong);
   $('reset').addEventListener('click', () => {
-    if (confirm('Reset score, saves and global saves?')) { state = fresh(); render('Everything reset.'); }
+    if (confirm('Reset score, saves, global saves, stars and highest score?')) { state = fresh(); render('Everything reset.'); }
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowUp') right();
